@@ -6,15 +6,13 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
-import android.media.Image
 import android.net.Uri
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
-import androidx.activity.result.ActivityResultCallback
-import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import kotlinx.android.synthetic.main.activity_main.*
@@ -42,37 +40,42 @@ class MainActivity : AppCompatActivity() {
                 Uri.fromFile(outputImage)
             }
             // 启动相机程序
+
             val intent = Intent("android.media.action.IMAGE_CAPTURE")
             intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
+            setResult(takePhoto, intent)
 //            startActivityForResult(intent, takePhoto)
-            val startActivity = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-                    //此处进行数据接收（接收回调）
-                Log.d("页面结果返回", "it.resultCode: ${it.resultCode} ")
-                    if (it.resultCode == Activity.RESULT_OK) {
-                        //成功数据
-                    }
-                }
-            //跳转方式
+
+//            //跳转方式
             startActivity.launch(intent)
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        when(requestCode) {
-            takePhoto -> {
-                if (resultCode == Activity.RESULT_OK) {
-                    // 将拍摄的照片显示出来
-                    val bitmap = BitmapFactory.decodeStream(contentResolver.openInputStream(imageUri))
-                    imageView.setImageBitmap(rotateIfRequired(bitmap))
-                }
-            }
+    val startActivity = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            result: ActivityResult ->
+        Log.d("resultcode的值", ": ${result.resultCode}")
+        if (result.resultCode == Activity.RESULT_OK) {
+            val bitmap = BitmapFactory.decodeStream(contentResolver.openInputStream(imageUri))
+            imageView.setImageBitmap(rotateIfRequired(bitmap))
         }
     }
 
+//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+//        super.onActivityResult(requestCode, resultCode, data)
+//        when(resultCode) {
+//            takePhoto -> {
+//                if (resultCode == Activity.RESULT_OK) {
+//                    // 将拍摄的照片显示出来
+//                    val bitmap = BitmapFactory.decodeStream(contentResolver.openInputStream(imageUri))
+//                    imageView.setImageBitmap(rotateIfRequired(bitmap))
+//                }
+//            }
+//        }
+//    }
+
     private fun rotateIfRequired(bitmap: Bitmap): Bitmap {
         val exif = ExifInterface(outputImage.path)
-        Log.d("图片方向", "rotateIfRequired: ")
+        Log.d("图片方向", "rotateIfRequired: $exif")
         val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
         return when (orientation) {
             ExifInterface.ORIENTATION_ROTATE_90 -> rotateBitmap(bitmap, 90)
